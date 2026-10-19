@@ -7,12 +7,12 @@
 [![Docker](https://img.shields.io/badge/Containers-Docker%20Compose-2496ed?logo=docker)](https://www.docker.com/)
 [![Project](https://img.shields.io/badge/Academic-Software%20Engineering%20Capstone-blue)](#academic-context--privacy-notice)
 
-> **LingoLearn** is a full-stack, enterprise-grade multilingual literacy platform built to teach South African languages (English and isiZulu) through interactive stories, audio practice, placement testing, and progressive mastery evaluations. The platform features an end-to-end localized interface, modular content authoring tools, an editorial moderation workflow, and child safety compliance mechanisms.
+> **LingoLearn** is a full-stack, multilingual literacy platform built to teach South African languages (English and isiZulu) through interactive stories, audio practice, placement testing and progressive mastery evaluations. The platform features an end-to-end localised interface, modular content authoring tools, an editorial moderation workflow and child safety compliance mechanisms.
 
 ### Academic Context & Privacy Notice
-This platform was engineered as a capstone project for a university software engineering module by a collaborative team of **6 student engineers**.
+This platform was engineered as a project for a university software engineering module by a team of 6 student engineers.
 
-To safeguard the personal privacy of all group members, all real names, student numbers, and institutional contact details have been completely removed from this public release. Each of the **6 team members** is identified throughout the codebase and documentation using dedicated two-letter engineering pseudonyms:
+To safeguard the personal privacy of all group members, all details have been completely removed from this public repo. Each of the 6 team members is identified throughout the codebase and documentation using the following pseudonyms:
 
 | Contributor | Pseudonym | Subsystem Owned | Full-Stack Scope & Responsibilities |
 |---|:---:|---|---|
@@ -279,50 +279,13 @@ Use the subsystem flags to execute both backend and frontend tests for an indivi
 
 ---
 
-## Future Roadmap & Opportunities for Improvement
+## Places to Improve
 
-While the platform is fully functional, robustly tested, and complete for production demonstration, the following technical initiatives represent strategic engineering enhancements for scaling the system into a nationwide commercial or non-profit educational platform:
+While the platform is fully functional, robustly tested and complete, the following changes and additions may be beneficial:
 
-### 1. Cloud-Native Media Infrastructure & CDN Acceleration
-- **Current State:** Media files (audio recordings and story illustrations) are stored on the local persistent filesystem accompanied by sidecar metadata files (`.meta.json`).
-- **Production Path:**
-  - Transition the storage layer to **AWS S3** or **Cloudflare R2** using secure pre-signed upload URLs, eliminating direct server I/O overhead.
-  - Implement a globally distributed **CloudFront CDN** with edge caching for audio playback and image delivery, drastically reducing latency for mobile learners across diverse regional networks.
-  - Integrate automated asynchronous media transcoding (e.g., via FFmpeg worker queues) to optimize uploaded audio into standardized Opus/AAC formats at lower bitrates for low-bandwidth mobile environments.
-
-### 2. AI-Powered Acoustic Modeling & Pronunciation Evaluation
-- **Current State:** Learners record audio clips and listen back to self-evaluate against author reference audio.
-- **Production Path:**
-  - Integrate an automated acoustic evaluation service leveraging fine-tuned speech models (such as **Wav2Vec2** or **Whisper** fine-tuned on South African Bantu languages).
-  - Provide real-time **phoneme-level alignment** and pronunciation accuracy scoring, highlighting specific mispronounced syllables and offering corrective auditory cues.
-  - Provide an automated Text-to-Speech (TTS) synthesizer fallback for newly drafted community stories that lack studio audio recordings.
-
-### 3. Real-Time Collaborative Authoring & Notifications
-- **Current State:** Content drafts are single-author managed with discrete HTTP save endpoints and locks.
-- **Production Path:**
-  - Introduce **WebSockets** (or WebRTC) combined with **CRDTs** (Conflict-free Replicated Data Types such as Yjs) to enable collaborative real-time lesson authoring between teachers, translators, and illustrators.
-  - Implement an event-driven notification hub (via WebSockets or Server-Sent Events) alerting authors instantly when their submissions are claimed, approved, or returned with review feedback.
-
-### 4. Progressive Web App (PWA) Offline Synchronization
-- **Current State:** The platform is a responsive web application requiring active network connectivity to fetch content and submit assessments.
-- **Production Path:**
-  - Implement a comprehensive Service Worker caching strategy and **IndexedDB** client-side storage layer.
-  - Allow learners in rural, under-resourced, or low-connectivity areas to download entire learning modules and audio packs over Wi-Fi, study offline, and automatically synchronize test attempts and progress metrics upon regaining network connectivity.
-
-### 5. Advanced Pedagogy, Analytics & Educator Dashboards
-- **Current State:** Learners progress through standardized difficulty ladders (A1 to C2) and track daily learning goals.
-- **Production Path:**
-  - Implement **Spaced Repetition Algorithms** (e.g., modified SuperMemo SM-2 or Leitner systems) for automated vocabulary retention drills.
-  - Develop an **Educator / School Portal** allowing teachers to create student cohorts, assign specific curriculum stories, monitor classroom-wide literacy trends, and identify learners requiring early intervention.
-  - Gamified achievement badges, classroom leaderboards, and streak multiplier incentives designed around child cognitive development principles.
-
-### 6. Event-Driven Microservices Decoupling
-- **Current State:** Clean modular monolith architecture with isolated domain slices sharing a PostgreSQL database instance.
-- **Production Path:**
-  - Decouple CPU-intensive background tasks (media transcoding, automated PDF report generation, email notifications) into asynchronous background workers using a distributed message broker (e.g., **RabbitMQ** or **Redis Streams**).
-  - Deploy with container orchestration (**Kubernetes / Helm**) with horizontal pod autoscaling (HPA) configured for high-traffic learner assessment periods.
-
----
+1. Creating a way for people to apply to be authors and moderators, perhaps an entry-test for them (similar to placement tests). This will allow the app to scale, since manually adding authors and moderators to the DB is a tedious and unnecessary step.
+2. More functionality for learners should be added. While the current setup will definitely enable users to learn more about phonetics, grammar and pronounciation (provided there is sufficient content), more functionality will increase the learners exposure to the language from different perspectives, which will boost their understanding and retention.
+3. Creating an automatic comparer between the author's recording and the user's recording. At the moment, a manual comparison has to occur from the user. It would be more efficient for this to be done automatically, either with some sort of neural network or audio comparison algorithm.---
 
 ## Repository Structure
 
@@ -362,4 +325,4 @@ LingoLearn/
 
 ## Academic Notice & License
 
-This project was developed for academic assessment in a university software engineering capstone module. All rights and academic integrity policies apply. Software is distributed for demonstration and portfolio review purposes.
+This project was developed for academic assessment in a university software engineering module. All rights and academic integrity policies apply. Software is distributed for demonstration and portfolio review purposes.
