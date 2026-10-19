@@ -1,0 +1,137 @@
+<title>Media &amp; Taxonomy after the merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">LingoLearn integration · MO · media and taxonomy</span>
+<h1>Media &amp; Taxonomy after the merge</h1>
+<p class="lede">Your taxonomy tables became the single tag model for the project, your upload is now what the content builder actually uses, and the author dashboard shows real content. The routes moved behind the auth gate.</p>
+</header>
+<section>
+  <h2>What was kept</h2>
+  <div class="card"><span class="chip keep">Yours</span>
+  <ul>
+    <li><code>400_taxonomy.sql</code> (renumbered from 410) is <b>the</b> tag schema. TD's <code>tag_vocabulary</code> was deleted from <code>300_content.sql</code>; your <code>tags</code> and <code>content_tags</code> won, including <code>tag_type</code>, descriptions and the ten-tag trigger.</li>
+    <li><code>TaxonomyMethods</code> and its SQL, unchanged.</li>
+    <li><code>validateAudio</code> shared by frontend and backend, memory storage with validation before anything is written, and the duration check.</li>
+    <li>The author dashboard: <code>ContentStatusBadge</code>, <code>ContentFilterPills</code>, <code>RejectedContentNotice</code>, <code>contentStatusMeta</code> and the Feedback tab.</li>
+    <li>Your upload button and <code>&lt;audio&gt;</code> preview, ported into the builder's audio block and living inside that component, as they did in yours.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>The tag collision, and how it was settled</h2>
+  <p>Both you and TD created a table called <code>content_tags</code>, with different columns. Both use <code>CREATE TABLE IF NOT EXISTS</code>, so on a merged database whichever migration ran first won and the other was skipped <b>with no error at all</b> — your queries would have failed at runtime on missing <code>ct.id</code> and <code>ct.created_at</code>.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th></th><th>Now</th></tr></thead>
+    <tbody>
+      <tr><td>Vocabulary</td><td>Your <code>tags(id, name, tag_type, description)</code>. Themes are the union of both lists: your six plus greetings, numbers, shopping, directions, weather, conversation, vocabulary, listening, grammar.</td></tr>
+      <tr><td>Link table</td><td>Your <code>content_tags</code> shape, plus real foreign keys: <code>content_id → content(id) ON DELETE CASCADE</code> and <code>tag_id → tags(id) ON DELETE RESTRICT</code>. Deleting content removes its links; a tag in use cannot be deleted. It had no foreign key to anything before, and the tests used a made-up <code>content_id</code> of 42.</td></tr>
+      <tr><td>Levels</td><td>Your <code>levels</code> table stayed, seeded 1–6 instead of 1–5, because the API, the builder, Explore and the review queue all use six.</td></tr>
+      <tr><td>The builder's tag list</td><td>Fetched from <code>getTags?type=theme</code>. The hard-coded <code>AVAILABLE_TAGS</code> array is gone, so an administrator adding a tag changes what authors see.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>What changed in your code, and why</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><b>Taxonomy and media moved from <code>routes.api.public</code> to <code>routes.api</code></b>, so they sit behind the auth gate. Upload is author-or-administrator, tag creation administrator-only.</td><td>Everything was reachable with no session at all: anyone could upload files to the server or add tags.</td></tr>
+      <tr><td><b><code>DELETE /deleteAudio</code> is gone.</b></td><td>It was public, so anyone could delete any clip, and approved content may still point at the file. Nothing tracks which content uses which upload yet.</td></tr>
+      <tr><td><b>Uploads are named <code>randomUUID()</code> + extension and stored under <code>backend/uploads/audio/</code></b>, served read-only at <code>/uploads/audio/…</code>. The reply carries a <b>relative</b> <code>fileUrl</code>.</td><td>The old name was <code>Date.now()-originalname</code> with no <code>path.basename</code>, and <code>buildFileUrl</code> built an absolute URL from the <code>Host</code> header while <code>trust proxy</code> was on — that host would have been baked into content JSON and been wrong for every other reader. <code>MediaDataSource.resolveUrl()</code> puts the origin back at render time.</td></tr>
+      <tr><td><b>A file over 5 MB answers 413.</b></td><td>MulterError fell through to the app handler as a 500.</td></tr>
+      <tr><td><b>Handlers use <code>genericCatch</code></b> and no longer return <code>err.message</code>, and paths are verb-named (<code>getTags</code>, <code>setContentTags</code>, …).</td><td>Database errors were being returned to the client, and the paths were REST-style against the scaffold's convention.</td></tr>
+      <tr><td><b>The taxonomy integration tests now hit the database.</b></td><td>They mocked <code>TaxonomyMethods</code> entirely, so none of your SQL had ever run.</td></tr>
+      <tr><td><b>The five committed test mp3s were removed</b> and <code>uploads/</code> is ignored. <code>tsconfig.app.json</code> went back to <code>tsconfig.dom.json</code>, the duplicate route registrations in <code>routes.ts</code> are gone, and <code>/api/docs</code> parses the spec once at startup again.</td><td>The tsconfig change dropped the DOM library and leaked every <code>@types</code> package into the frontend build.</td></tr>
+      <tr><td><b>Your <code>BlockMux.vue</code> and standalone <code>ContentTypeAudioBar.vue</code> were dropped</b> in favour of the builder's, with your upload and player ported in.</td><td>Both branches added the same two files. The builder's versions handle image blocks, read-only rendering and untyped blocks.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>How much new code is in your slice</h2>
+  <div class="card"><span class="chip keep">Almost none</span>
+  <p>An image upload was written during the merge and then <b>removed again</b>: it was a second copy of your audio path, and image blocks already worked with a typed link. Uploading is audio only, as you left it. Adding images is still yours to do, and now has an obvious shape to follow.</p>
+  <p>What remains that you did not write is one file, <code>functions/mediaStorage.ts</code>: where an upload is written and how it is named. That was needed to fix the filename and the <code>Host</code>-header URL, both described below.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The dashboard is on real data</h2>
+  <ul class="plain">
+    <li><code>mockAuthorContent</code> is deleted. The store calls <code>ContentDataSource.getMyContent()</code>, which returns only the signed-in author's own content.</li>
+    <li>Feedback comes from <code>getMyFeedback</code>: the real moderator note, who decided and when, for the Feedback tab.</li>
+    <li>Row ids are integers, and Edit opens <code>/content-builder/:contentId</code> — the builder used to ignore the <code>?id=</code> you sent.</li>
+    <li><code>type</code> is derived: a quiz shows as Test, anything else as Lesson. Levels and titles are real columns now.</li>
+  </ul>
+</section>
+<section>
+  <h2>What is yours to do next</h2>
+  <ul class="plain">
+    <li><b>Image upload.</b> Image blocks still take a typed link. The audio route is the pattern: <code>receiveFile</code> → validate → <code>storeUpload</code> → return a relative <code>fileUrl</code>.</li>
+    <li>An asset table, if uploads should be tracked in the database (filename, type, size, duration) — the idea from your old <code>media-MO</code> branch worth salvaging. That is also what a safe delete needs.</li>
+    <li>The media library screen: it is currently a standalone Upload Audio page, while the builder uploads inline. Decide whether it becomes a picker.</li>
+    <li>Level names and descriptions are unused on the frontend so far.</li>
+  </ul>
+</section>
+<section>
+  <h2>Running it</h2>
+  <pre>git fetch origin
+git switch integration
+
+# backend/.env needs one new line
+AUTH_SECRET=any-long-random-string
+
+cd backend &amp;&amp; npm install
+docker compose up -d
+npm run migrate        # run against a FRESH database: the migrations were renumbered
+npm run seed:staff     # author@lingolearn.test, moderator@…, admin@… (password: lingolearn-dev)
+npm run dev
+
+cd ../frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+  <p>Learners and guardians sign themselves up. Author, moderator and administrator accounts only come from <code>npm run seed:staff</code>.</p>
+</section>
+</main>

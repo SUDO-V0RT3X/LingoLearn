@@ -1,0 +1,119 @@
+<title>Content builder after the merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">LingoLearn integration · TD · content builder</span>
+<h1>Content builder after the merge</h1>
+<p class="lede">The builder itself is unchanged in shape. What changed is everything around it: content now belongs to an author, it has a title and a language, and three new list routes serve the slices that read it.</p>
+</header>
+<section>
+  <h2>What the other slices needed, and now have</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>New</th><th>Who reads it</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /api/content/getMyContent</code></td><td>The author dashboard, which listed ten hard-coded rows.</td></tr>
+      <tr><td><code>GET /api/content/getPendingContent</code></td><td>The review queue, which had seven hard-coded rows.</td></tr>
+      <tr><td><code>GET /api/content/getApprovedContent?level&amp;language&amp;childFriendlyOnly</code></td><td>Explore. For a learner it also runs the onboarding slice's access check.</td></tr>
+      <tr><td><code>ContentMethods.setReviewedStatus(client, id, status)</code></td><td>Moderation, inside its own transaction with the decision row.</td></tr>
+      <tr><td><code>title</code>, <code>language</code>, <code>child_friendly</code> columns</td><td>Every list screen needed a title; the learner's target language filters content; the under-13 gate needed one honest flag instead of three invented "audience" fields.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>What was fixed in the slice</h2>
+  <ul class="plain">
+    <li><b>No auth at all.</b> Create, edit, delete and submit are author-or-administrator, and <code>lockEditableOrThrow</code> checks ownership: another author gets 403, not a silent edit. <code>author_id</code> comes from the session and is <code>NOT NULL</code>.</li>
+    <li><b>Reading rules.</b> An author reads their own work, a moderator anything submitted, any signed-in reader approved content.</li>
+    <li><b>Levels disagreed in three places</b> — the database allowed 1–10, the API 1–6, the UI showed A1–C1. Everything is 1–6 now, matching the taxonomy's <code>levels</code> table.</li>
+    <li><b>Submit never checked media.</b> It accepted an image with no file and no alt text, and audio with no file, which would have rendered as nothing for a learner. The three copies of the validation are now one module that both the routes and the submit screen use.</li>
+    <li><b>A draft could not be reopened from the UI</b> (LNG-32). It opens at <code>/content-builder/:contentId</code>, and there is a "Start a new draft" action after submitting, which was impossible without a page refresh.</li>
+    <li><b>Rejected content reopens as a draft on the first edit</b>, which is how an author answers a moderator.</li>
+    <li><b>Tags come from the taxonomy API</b> rather than a hard-coded array, so they stay in step with MO's vocabulary. The tag tables moved out of <code>300_content.sql</code> into his <code>400_taxonomy.sql</code>, per the migrations README's 4xx range.</li>
+    <li><b>Audio blocks really upload now</b> and play the file: MO's upload button and player were ported into your audio bar. Image blocks still take a typed link, as they did before — uploading images is media's slice to add.</li>
+  </ul>
+</section>
+<section>
+  <h2>This slice was advanced, not only integrated</h2>
+  <div class="card"><span class="chip warn">Your own slice</span>
+  <p>Unlike the others, the content builder gained real features during the merge: three list routes, the title, language and child-friendly columns, ownership checks, the draft-reopen route, the new-draft action and the audio upload field. That was deliberate — four slices read this slice, and each gap here was blocking someone else — but it is new work, not just wiring.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Decisions that were made for the group</h2>
+  <ul class="plain">
+    <li><b>The block format stays yours</b>: <code>content: $ContentBlock[][]</code> with <code>'Text' | 'Image' | 'Audio'</code> and no block ids. NS's renderer used lowercase types and required ids; hers was adapted, because your shape already has backend validation and the most tests behind it.</li>
+    <li><b>Kind stays derived</b> from the blocks. <code>QUESTION_BLOCK_TYPES</code> is still empty, so everything is a story until question blocks exist — that is Sprint 2 and it blocks TK's placement test.</li>
+    <li><b>Language values are <code>english</code> and <code>zulu</code></b>, the same words TK's <code>learner_settings.target_language</code> already stored.</li>
+  </ul>
+</section>
+<section>
+  <h2>What is yours to do next</h2>
+  <ul class="plain">
+    <li>Question block types (LNG-37, LNG-38) — TK's placement ladder needs them.</li>
+    <li>Author preview (LNG-41): the learner slice's renderer now exists, so the builder can reuse it instead of the disabled Preview button.</li>
+    <li>A size limit on content: <code>express.json</code> is set to 50 MB and nothing caps pages, blocks or string lengths.</li>
+  </ul>
+</section>
+<section>
+  <h2>Running it</h2>
+  <pre>git fetch origin
+git switch integration
+
+# backend/.env needs one new line
+AUTH_SECRET=any-long-random-string
+
+cd backend &amp;&amp; npm install
+docker compose up -d
+npm run migrate        # run against a FRESH database: the migrations were renumbered
+npm run seed:staff     # author@lingolearn.test, moderator@…, admin@… (password: lingolearn-dev)
+npm run dev
+
+cd ../frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+</section>
+</main>

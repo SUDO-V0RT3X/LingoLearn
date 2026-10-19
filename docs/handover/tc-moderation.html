@@ -1,0 +1,131 @@
+<title>Moderation after the merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">LingoLearn integration · TC · moderation</span>
+<h1>Moderation after the merge</h1>
+<p class="lede">Your screens, sorting and decision rules are in, now reading real submitted content and writing real decisions. The merge used LIN-39 and LIN-38 rather than demo-combined.</p>
+</header>
+<section>
+  <h2>Which branches were merged</h2>
+  <div class="card"><span class="chip warn">Not demo-combined</span>
+  <ul>
+    <li><code>LIN-39-review-detail</code> then <code>LIN-38-review-queue</code> were merged. Both have the role guards switched on.</li>
+    <li><code>demo-combined</code> was left out: <code>a335295</code> comments out the queue guard and <code>8578787</code> quietly comments out the detail guard too. Its "v2, with fixes" commit contains no fixes — the diff is exactly LIN-38's own changes.</li>
+    <li>Of the two identical-looking "add unit tests for LIN-38" commits, the later one is the one that works; the earlier has a bad import and the file pasted twice.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>What was kept</h2>
+  <div class="card"><span class="chip keep">Yours</span>
+  <ul>
+    <li>Both screens, the sort and filter controls, and the waiting-time column.</li>
+    <li><code>QueueSortFilter</code>, <code>WaitingTimeFormatter</code>, <code>DecisionValidator</code>, <code>DecisionMessageBuilder</code> and their tests. Pulling logic into small named helpers is the habit the rest of the project should copy.</li>
+    <li>The detail screen reloading when the id in the URL changes.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>What changed, and why</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><b>The queue and the detail screen read the content slice's rows.</b> <code>ReviewQueueMethods</code> calls <code>ContentMethods.getPendingContent()</code> and maps it to your <code>ReviewQueueRow</code>.</td><td>The seven hard-coded rows are gone, and so is <code>if (id !== 1) throw 404</code>, which meant rows 2–7 in your own queue could not be opened. The commented-out SQL also had a typo (<code>submited_at</code>), an unclosed string, and columns that do not exist.</td></tr>
+      <tr><td><b>Fields you invented are now derived from real columns:</b> <code>contentType</code> from the blocks (quiz → Test), <code>audience</code> from <code>content.child_friendly</code>, <code>author</code> from a join to <code>users</code>, <code>title</code> and <code>submittedAt</code> from the content row.</td><td>Three slices had invented three different "audience" fields. One boolean on content settles it.</td></tr>
+      <tr><td><b><code>600_moderation.sql</code> records decisions</b>: content, moderator, decision, reason, timestamp. The database itself refuses a rejection with no reason.</td><td>There was no decisions table, so a decision could not be saved, and the author had no way to see feedback.</td></tr>
+      <tr><td><b><code>POST /api/reviewDetail/decideContent/:id</code></b> moves the content and writes the decision in one transaction, taking the moderator from the session.</td><td>Confirming a decision only did <code>console.log</code> and an <code>alert()</code>. Errors now show on the page.</td></tr>
+      <tr><td><b>"Request changes" is gone: rejecting with a reason is how changes are requested.</b> The author edits the content, which reopens it as a draft.</td><td>There was no fifth status for it, and the author-facing flow is the same either way. <code>DecisionValidator</code> keeps the rule that a rejection needs a reason.</td></tr>
+      <tr><td><b>The guards are on</b>, as <code>requireRole('moderator', 'administrator')</code>, and both routes carry <code>meta.roles</code> in the router.</td><td><code>'admin'</code> is not a role in this system — it would not have compiled against the identity slice's types.</td></tr>
+      <tr><td><b>The preview renders the author's real blocks</b>, including images and audio, by reusing the learner slice's <code>BlockRenderer</code>.</td><td>Your <code>pages: {heading, text, audioUrl}</code> shape was a third, unrelated content format; against real data the preview would have been blank.</td></tr>
+      <tr><td><b>Dropped:</b> the fake "decided this week: 12 approved, 3 rejected" line, the <code>validateFeature1</code> stubs, the duplicate row interface in <code>queueSortFilter</code>, and <code>claimedBy</code>. The queue now clears its error before each load.</td><td>Claiming has no table and nothing sets it; it is a Sprint 2 feature, not a field to leave hanging.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>New code written in your slice, not just rewiring</h2>
+  <div class="card"><span class="chip warn">Written for you, yours to own</span>
+  <p>Deciding was not implemented anywhere: confirming a decision did <code>console.log</code> and an <code>alert()</code>. Without it nothing could ever reach <code>approved</code>, so the learner's Explore would always have been empty and the merge could not be shown working end to end. So these were written during the merge:</p>
+  <ul>
+    <li><code>backend/migrations/600_moderation.sql</code> — the <code>content_reviews</code> table.</li>
+    <li><code>ReviewDetailMethods.decideContent</code> and <code>POST /api/reviewDetail/decideContent/:id</code>.</li>
+    <li><code>ReviewDetailMethods.getFeedbackForAuthor</code> and <code>GET /api/reviewDetail/getMyFeedback</code>, which is what the author's dashboard reads.</li>
+    <li>Nothing else. A preview component was written and then removed again: the review screen now renders the learner slice's own <code>BlockRenderer</code>, so a moderator sees exactly what a learner sees and the project has one renderer rather than two.</li>
+  </ul>
+  <p>Read them before you build on them, and change anything you disagree with — this is your slice. If you would rather have written it yourself, say so and it can be reverted to a documented gap instead.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Your tests</h2>
+  <p>The old ones asserted the placeholder: seven rows, and 401 because the gate was a no-op. They are replaced by <code>backend/test/integration/moderationRoutes.test.ts</code>, which signs in as an author, submits content, then as a moderator lists the queue, opens it, approves, and rejects — including that a rejection without a reason is refused and that a second decision is 409. Your four frontend helper specs still pass unchanged.</p>
+</section>
+<section>
+  <h2>What is yours to do next</h2>
+  <ul class="plain">
+    <li>Claiming an item for review, if the group wants it: a <code>claimed_by</code> column and a route.</li>
+    <li>The "decided this week" figure, which the decisions table can now answer for real.</li>
+    <li>Progression (level challenges) — still entirely to build.</li>
+  </ul>
+</section>
+<section>
+  <h2>Running it</h2>
+  <pre>git fetch origin
+git switch integration
+
+# backend/.env needs one new line
+AUTH_SECRET=any-long-random-string
+
+cd backend &amp;&amp; npm install
+docker compose up -d
+npm run migrate        # run against a FRESH database: the migrations were renumbered
+npm run seed:staff     # author@lingolearn.test, moderator@…, admin@… (password: lingolearn-dev)
+npm run dev
+
+cd ../frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+  <p>Learners and guardians sign themselves up. Author, moderator and administrator accounts only come from <code>npm run seed:staff</code>.</p>
+</section>
+</main>

@@ -1,0 +1,143 @@
+<title>LingoLearn Integration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">Software Engineering Capstone · 17 September 2026</span>
+<h1>LingoLearn: one system</h1>
+<p class="lede">Six branches merged into <code>integration</code>, with the conflicts settled and the mock data replaced by real queries. This is the group summary; each person has their own page.</p>
+</header>
+<section>
+  <h2>Where it stands</h2>
+  <div class="card">
+  <ul>
+    <li>Everything is on <code>origin/integration</code>. <code>main</code> is untouched: the last step is a merge request from <code>integration</code> into <code>main</code>, which someone other than the author should approve.</li>
+    <li>Every slice is merged. Six branches became one app with one login, one content table, one tag vocabulary and one set of role names.</li>
+    <li><b>124 backend tests</b>, all against a real Postgres database, and <b>285 frontend tests</b>. Both type checks are clean, including the test files.</li>
+    <li>The seven security holes listed in the merge plan are closed.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>Your own page</h2>
+  <p>Each person has a page covering what changed in their slice, why, what was written for them rather than rewired, and what is theirs to do next. Read yours before you next pull. All seven pages are in the repo under <code>docs/handover/</code>.</p>
+  <ul class="plain">
+    <li><b>TS</b> — identity and access: your API and screens stayed; storage moved to Postgres.</li>
+    <li><b>TK</b> — onboarding: your settings, under-13 rules and translations are in; your auth and content copies were dropped.</li>
+    <li><b>TD</b> — content builder: ownership, title and language, and the routes other slices needed.</li>
+    <li><b>MO</b> — media and taxonomy: your tag tables won; uploads moved behind the gate.</li>
+    <li><b>TC</b> — moderation: real queue, real decisions, guards on.</li>
+    <li><b>NS</b> — learner experience: version 12 ported into the app on real content.</li>
+  </ul>
+</section>
+<section>
+  <h2>What the merge did, and did not, do</h2>
+  <div class="card">
+  <p>The job was to make six branches into one coherent system out of the parts that already existed — not to build anyone's remaining features. Nothing was advanced in the onboarding or learner slices; both were ported, fixed and rewired, and what is left is still theirs.</p>
+  <p>Two exceptions remain, each because the join could not close without them. They are marked in the person's own page, and either can be handed back:</p>
+  <ul>
+    <li><b>Moderation</b> — the decisions table and the approve/reject and author-feedback routes. Deciding was not implemented at all, so nothing could ever reach <code>approved</code> and Explore would always have been empty.</li>
+    <li><b>Identity</b> — the same features, but the storage rewritten from JSON files to SQL, plus a staff seed script.</li>
+  </ul>
+  <p>Two other additions were written and then taken out again, because integration did not need them: an <b>image upload</b>, which only repeated the audio path that already existed, and a <b>second block renderer</b> for the review screen, which now reuses the learner's. Around 200 lines came back out.</p>
+  <p>The content builder was deliberately advanced, because four slices read it and each gap in it was blocking someone else.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The decisions that settled the conflicts</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Question</th><th>Settled as</th></tr></thead>
+    <tbody>
+      <tr><td>Two <code>users</code> tables</td><td>TS's contract, on a Postgres backend built from TK's patterns</td></tr>
+      <tr><td>Two <code>content_tags</code> tables</td><td>MO's, in <code>400_taxonomy.sql</code>, with real foreign keys</td></tr>
+      <tr><td>Two <code>300_content.sql</code></td><td>The content builder's; TK's dummy table dropped</td></tr>
+      <tr><td>Role names</td><td><code>learner · guardian · author · moderator · administrator</code></td></tr>
+      <tr><td>Levels</td><td>1–6, in the database, the API and every screen</td></tr>
+      <tr><td>Three "audience" fields</td><td>One <code>content.child_friendly</code> boolean</td></tr>
+      <tr><td>Two block formats</td><td>The content builder's: <code>'Text' | 'Image' | 'Audio'</code>, no block ids</td></tr>
+      <tr><td>"Request changes"</td><td>A rejection with a reason; editing reopens it as a draft</td></tr>
+      <tr><td>Uploaded files</td><td>Relative <code>/uploads/…</code> paths, resolved when rendered</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>What the whole system does now</h2>
+  <pre>sign up / sign in  →  learner setup (language, date of birth, daily goal)
+                          │
+   author writes content   │   under 13? a guardian must redeem a link code first
+        │                  │
+   submit for review  →  moderator queue  →  approve / reject with a reason
+        │                                          │
+   rejected: the author edits, which reopens it     approved
+                                                    │
+                                              learner Explore  →  reader
+                                              (their level, their language,
+                                               child-friendly if under 13)</pre>
+  <p>7 migrations, 30 documented API routes and 13 screens. The API is browsable at <code>/api/docs</code>.</p>
+</section>
+<section>
+  <h2>What is still missing</h2>
+  <ul class="plain">
+    <li><b>Progress tables (5xx).</b> Nothing records what a learner has read or passed. This blocks level locking, progress bars, the level-up challenge and the guardian's progress report, which returns empty counts today.</li>
+    <li><b>Question block types.</b> <code>QUESTION_BLOCK_TYPES</code> is empty, so all content is a story and the placement ladder has nothing to ask.</li>
+    <li><b>Placement</b> (<code>learner_levels</code>, <code>placement_attempts</code>) and the moderator's user management screens.</li>
+    <li>Uploads are not tracked in the database, so there is no safe way to delete one.</li>
+    <li>A known flake: on a loaded machine a backend test occasionally times out waiting on the database. Rerunning passes, and no test has ever failed on a wrong result — worth watching rather than ignoring.</li>
+  </ul>
+</section>
+<section>
+  <h2>Branches to retire once main has the merge</h2>
+  <pre>demo-combined            replaced by LIN-39 + LIN-38, without the disabled guards
+media-MO                 replaced by demo-MO
+LIN-2-3-audio-upload · LIN-4-taxonomy-tables · LIN-7-author-dashboard   all inside demo-MO
+LIN-38-review-queue · LIN-39-review-detail                             merged
+content_db · content_store_tests · content_block_types · content_gui_tests
+content_comments · content_complexity · content_moveblock_refactor
+content_delete_draft · fix_root_node_modules            all inside content_builder</pre>
+  <p>Keep <code>learner_experiencev1</code> until NS is happy with the port: it is the only copy of the earlier versions.</p>
+</section>
+</main>

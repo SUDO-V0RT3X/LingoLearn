@@ -1,0 +1,131 @@
+<title>Onboarding after the merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">LingoLearn integration · TK · onboarding and placement</span>
+<h1>Onboarding after the merge</h1>
+<p class="lede">Your learner settings, under-13 rules, setup screen and translations are all in. Your copies of auth and content were dropped, because those tables are owned elsewhere — and your under-13 rule now gates the real content API.</p>
+</header>
+<section>
+  <h2>What was kept</h2>
+  <div class="card"><span class="chip keep">Yours</span>
+  <ul>
+    <li><code>200_learner_settings.sql</code> and <code>201_learner_settings_user_fk.sql</code>, unchanged.</li>
+    <li>The onboarding routes, <code>OnboardingMethods</code>, your validation and your tests.</li>
+    <li><code>shared/learnerAccess.ts</code> — <code>calculateAge</code>, <code>getLearnerAccess</code>, <code>requireLearnerContentAccess</code>. This is now the gate the whole system uses for learner reads.</li>
+    <li><code>LearnerSetupScreen</code>, <code>learnerSetupStore</code>, <code>onboardingDataSource</code>, <code>endpointContracts.spec</code>.</li>
+    <li><code>i18n.ts</code> with vue-i18n, mounted in <code>main.ts</code> — the only translation work in the project.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>What was dropped, and why</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Dropped</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>100_users.sql</code>, <code>101_auth_sessions.sql</code>, <code>102_parent_links.sql</code>, <code>authService.ts</code>, <code>authTypes.ts</code>, <code>authValidation.ts</code>, your <code>authStore</code>, <code>authDataSource</code>, <code>authEndpoints</code> and <code>SignInScreen</code> rewrite</td><td>Identity is TS's slice, and both of you had built it. Her version has the wider contract: guardians, <code>/me</code>, link codes, username sign-in for learners. Two <code>users</code> tables with <code>CREATE TABLE IF NOT EXISTS</code> would have silently kept whichever ran first and broken the other's queries at runtime.</td></tr>
+      <tr><td><code>300_content.sql</code> (the dummy table), <code>contentRoutes.ts</code> and its unit test</td><td>Same collision with the content slice, which has the real table. Nothing on your frontend called <code>/api/content</code>, so nothing broke.</td></tr>
+      <tr><td><code>bcryptjs</code>, <code>jsonwebtoken</code>, <code>@types/jsonwebtoken</code> from the <b>frontend</b> package.json</td><td>They were never imported there. Backend hashing is scrypt in TS's <code>passwordMethods.ts</code>.</td></tr>
+      <tr><td>The placeholder <code>ExploreScreen</code> and <code>PlacementTestScreen</code></td><td>Explore is the learner slice's screen. Placement is Sprint 2 and is still yours to build.</td></tr>
+      <tr><td><code>Cyclomatic_Complexity.md</code>, <code>tk-cyclomatic-complexity.md</code>, <code>DEMO_LEARNER_SETUP.md</code> from the repo root</td><td>Review artifacts live outside the repo.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Your fail-closed gate was the better one, and it is what the merged gate does now: a bad token gets 401, never a hang.</p>
+</section>
+<section>
+  <h2>Fixes made inside your code</h2>
+  <ul class="plain">
+    <li><b>Date of birth was shifting by a day.</b> pg turns a <code>DATE</code> into local midnight, so in SAST a stored 2005-01-14 came back as <code>2005-01-13T22:00:00Z</code>. That broke <code>&lt;input type="date"&gt;</code>, moved the date back one day on every save, and made a learner a day younger at the 13th-birthday boundary. Both queries now read <code>to_char(date_of_birth,'YYYY-MM-DD')</code>, and <code>SELECT *</code> was replaced by named columns.</li>
+    <li><b>The parent-link check reads TS's table.</b> <code>learnerAccess</code> queried <code>parent_links … status = 'active'</code>, which no longer exists; a row in <code>parent_child_links</code> is the link, because identity only writes one when a guardian has redeemed a code.</li>
+    <li><b>Setup-complete is a server question now.</b> <code>localStorage 'lingolearn_setup_complete'</code> followed the browser rather than the learner: the same learner on another laptop looked new, and clearing it let an under-13 learner past the block. A settings row exists or it does not.</li>
+    <li><b>A blocked under-13 learner is no longer signed out.</b> They are sent to the parent-linking screen to generate a code, which is the thing that unblocks them.</li>
+    <li><b>Paths are verb-named</b>: <code>getSettings</code>, <code>saveSettings</code>, <code>getAccess</code>.</li>
+  </ul>
+</section>
+<section>
+  <h2>Your rule now gates real content</h2>
+  <p><code>GET /api/content/getApprovedContent</code> calls your <code>requireLearnerContentAccess</code> for any learner:</p>
+  <ul class="plain">
+    <li>No settings row → <b>403</b>, setup must be completed first.</li>
+    <li>Under 13 with no guardian linked → <b>403</b>.</li>
+    <li>Under 13 with a guardian → allowed, but only <code>child_friendly</code> content, whatever the request asks for.</li>
+  </ul>
+  <p>Content has a <code>language</code> column using your words (<code>english</code>, <code>zulu</code>), so <code>learner_settings.target_language</code> filters it directly.</p>
+</section>
+<section>
+  <h2>Nothing here was built out for you</h2>
+  <div class="card"><span class="chip keep">Fixes and wiring only</span>
+  <p>No feature was added to this slice during the merge. What happened was your own files being brought across, four bugs fixed, and your under-13 rule wired into the content API. Placement — the ladder, the screens, <code>learner_levels</code> and <code>placement_attempts</code> — is untouched and still entirely yours.</p>
+  </div>
+</section>
+
+<section>
+  <h2>What is yours to do next</h2>
+  <ul class="plain">
+    <li>Placement: <code>learner_levels</code> and <code>placement_attempts</code> (2xx range), the ladder engine and the result screen. Questions need question block types, which the content builder has not built yet — agree that shape with TD before you start.</li>
+    <li>You own the only write path into a learner's level. Progression calls it; nobody writes the column directly.</li>
+    <li>More locale strings: only your slice's screens are translated so far.</li>
+  </ul>
+</section>
+<section>
+  <h2>Running it</h2>
+  <pre>git fetch origin
+git switch integration
+
+# backend/.env needs one new line
+AUTH_SECRET=any-long-random-string
+
+cd backend &amp;&amp; npm install
+docker compose up -d
+npm run migrate        # run against a FRESH database: the migrations were renumbered
+npm run seed:staff     # creates author@lingolearn.test, moderator@…, admin@… (password: lingolearn-dev)
+npm run dev
+
+cd ../frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+  <p>Learners and guardians sign themselves up. Author, moderator and administrator accounts only come from <code>npm run seed:staff</code>, so nobody can sign up as staff.</p>
+</section>
+</main>

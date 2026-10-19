@@ -1,0 +1,8 @@
+-- TODO: rename to 100_feature1.sql (your slice's number range — see migrations/README.md)
+-- and fill in. Kept as .example so the runner skips it until it has content.
+CREATE TABLE IF NOT EXISTS feature1 (
+    id         SERIAL PRIMARY KEY,
+    -- TODO: columns with NOT NULL / CHECK constraints
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

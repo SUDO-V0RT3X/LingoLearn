@@ -1,0 +1,14 @@
+# Root: OS and editor noise only. Each project has its own .gitignore.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+# Dependencies belong inside backend/ and frontend/, never at the root.
+/node_modules/
+/package-lock.json
+backend/node_modules
+frontend/node_modules
+.pnpm-store/
+Info/

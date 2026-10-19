@@ -1,0 +1,14 @@
+# The database, run locally. `docker compose up -d`, then `npm run migrate`.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lingolearn_db
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lingolearn
+    ports:
+      - "5433:5432"
+    volumes:
+      - lingolearn_pgdata:/var/lib/postgresql/data
+volumes:
+  lingolearn_pgdata:

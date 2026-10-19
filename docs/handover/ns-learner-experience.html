@@ -1,0 +1,132 @@
+<title>Learner experience after the merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">LingoLearn integration · NS · learner experience</span>
+<h1>Learner experience after the merge</h1>
+<p class="lede">Your reader, block renderer and Explore are now part of the app, reading real approved content. The branch itself was not merged — the app was ported out of version12_FinalTesting by hand.</p>
+</header>
+<section>
+  <h2>Why the branch was not merged</h2>
+  <div class="card"><span class="chip warn">Three blockers</span>
+  <ul>
+    <li><b>It replaced the main <code>App.vue</code></b> with your standalone one, which removed <code>&lt;RouterView&gt;</code> and the navigation. Merging it would have broken every other slice's screens.</li>
+    <li><b>Thirteen copies of the app</b> (<code>version0</code>–<code>version12</code>), about 9.8 MB and 52,000 lines, each with its own <code>package.json</code>. Only <code>version12_FinalTesting</code> was ported; nothing in the earlier ones was missing from it.</li>
+    <li><b><code>main.ts</code> imported <code>App.vue</code> through <code>C:/Users/sigwa/Desktop/vite-vue/src/</code></b>, a path that only exists on your laptop. The "locations" commit fixed that in two files but not this one.</li>
+  </ul></div>
+  <p>Nothing of yours was thrown away: the components, the recorder and your tests were moved into <code>frontend/src/features/learner_experience/</code>, in the same layout every other slice uses.</p>
+</section>
+<section>
+  <h2>What was kept</h2>
+  <div class="card"><span class="chip keep">Yours</span>
+  <ul>
+    <li><code>DocumentViewer</code>, <code>BlockRenderer</code>, <code>PageNav</code>, the Text, Image and Audio blocks.</li>
+    <li><code>useMicRecorder</code>, <code>RecordingBar</code> and <code>ComparisonBar</code> — record-and-compare is the best pedagogy idea in the project, and it cleans up its Blob URL on unmount.</li>
+    <li>The wallpaper picker, still a per-browser preference.</li>
+    <li>Explore's search and filter behaviour, and 56 of your tests: DocumentViewer, BlockRenderer, the three blocks, and Explore.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>What changed, and why</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><b>Tabs became routes:</b> <code>/explore</code> and <code>/read/:contentId</code>, learners only.</td><td>The rest of the app is routed, and a learner needs to be able to link to a lesson.</td></tr>
+      <tr><td><b>The catalogue comes from <code>getApprovedContent</code></b> and one document from <code>getContent</code>, through a Pinia store, instead of 23 hard-coded rows and <code>fetch('/c1-document-paginated.json')</code>.</td><td>Those JSON files were never in the app. The fetch failed, the error was never caught, and the viewer kept showing the bundled Lighthouse example — which is why opening anything appeared to work.</td></tr>
+      <tr><td><b>Block types are <code>'Text' | 'Image' | 'Audio'</code>, and blocks have no id.</b> Your renderer keyed on <code>block.id</code> and matched lowercase <code>'text'</code>.</td><td>The content builder's shape is what the database stores and what the backend validates. Against real data your <code>blockSchema.js</code> would have rejected every document and the renderer would have shown "No renderer yet" for every block.</td></tr>
+      <tr><td><b>Image and audio sources go through <code>MediaDataSource.resolveUrl</code>.</b></td><td>Uploads are stored as relative paths like <code>/uploads/audio/&lt;uuid&gt;.mp3</code>, so the page has to put the API origin back.</td></tr>
+      <tr><td><b>The learner is the signed-in one.</b> Language comes from their onboarding settings, and the child-friendly lock from the server's access check.</td><td>Explore always used the default <code>{age: 24, level: 2, guiChoice: 'ven'}</code>, because the real learner was never passed in.</td></tr>
+      <tr><td><b>Approved-only is enforced by the server</b>, and the reader refuses anything not approved.</td><td>A learner could otherwise open a draft by id.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>Left out on purpose, because the data does not exist</h2>
+  <p>These were dropped rather than faked. Each needs a table nobody has built:</p>
+  <ul class="plain">
+    <li><b>Level locking</b> ("your level and below, locked above"). Nothing stores a learner's level yet — that is TK's <code>learner_levels</code>, still to come. The level dropdown remains as a plain filter.</li>
+    <li><b>Progress bars, the "continue reading" card and the level-up card</b> — they need a progress table, which is your 5xx range and your next piece of work.</li>
+    <li><b>The has-audio filter</b>: catalogue rows deliberately do not carry the pages, so the list cannot tell. It needs a flag from the server.</li>
+    <li><b>passRate, flags, authorNote, page count</b> — no column anywhere.</li>
+    <li>Your Testing screen ("under construction"), the unused blocks (Author, Content, Pages, Quote, Title), the QA panel, and <code>App.spec.js</code>, which tested the tab and fetch mechanics that routing replaced.</li>
+  </ul>
+  <p class="note">The microphone recording is never uploaded — it stays in the browser. If pronunciation feedback should be kept or scored, that needs a storage decision and a consent conversation first, not just a route.</p>
+</section>
+<section>
+  <h2>Nothing here was built out for you</h2>
+  <div class="card"><span class="chip keep">Port only</span>
+  <p>No feature was added to this slice during the merge. Files were converted to TypeScript, re-pointed at the real API and moved into the standard folder layout; several features were <b>removed</b> because the data behind them does not exist yet. Everything in the next section is still yours to build.</p>
+  </div>
+</section>
+
+<section>
+  <h2>What is yours to do next</h2>
+  <ul class="plain">
+    <li><b>Progress tables (5xx):</b> content progress and test attempts. Everything above depends on them, and so does the guardian progress report, which currently returns empty counts.</li>
+    <li>Tags are returned on every catalogue row (<code>chosenTags</code>) and shown on the cards — a theme filter is a small addition if you want it back.</li>
+    <li>The lesson content itself is real now, so the example document and its media are no longer needed.</li>
+  </ul>
+</section>
+<section>
+  <h2>Running it</h2>
+  <pre>git fetch origin
+git switch integration
+
+# backend/.env needs one new line
+AUTH_SECRET=any-long-random-string
+
+cd backend &amp;&amp; npm install
+docker compose up -d
+npm run migrate        # run against a FRESH database: the migrations were renumbered
+npm run seed:staff     # author@lingolearn.test, moderator@…, admin@… (password: lingolearn-dev)
+npm run dev
+
+cd ../frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+  <p>To see Explore with something in it: sign in as the seeded author, write a lesson and submit it; sign in as the seeded moderator and approve it; then sign up a learner, finish setup, and open Explore.</p>
+</section>
+</main>

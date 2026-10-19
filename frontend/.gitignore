@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build / tool output
+dist/
+dist-ssr/
+*.tsbuildinfo
+coverage/
+.vite/
+
+# Local env overrides (none expected, but never commit them)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test artifacts
+*.local
+
+src/features/learners_experience_old_snapshots/

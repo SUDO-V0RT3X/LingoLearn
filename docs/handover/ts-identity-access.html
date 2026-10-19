@@ -1,0 +1,129 @@
+<title>Identity &amp; Access after the merge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f5f6f8; --surface:#fff; --ink:#1b2130; --muted:#5b6475; --line:#dde1e8;
+  --accent:#2f55c9; --accent-soft:#e6ecfb; --keep:#1d7a4a; --keep-bg:#e3f3ea;
+  --warn:#9a6200; --warn-bg:#fbf0d9; --drop:#b4322a; --drop-bg:#fbe6e4; --code-bg:#eef0f5;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}}
+:root[data-theme="dark"]{
+  --ground:#12151c; --surface:#1a1f29; --ink:#e4e8f0; --muted:#98a1b3; --line:#2c3342;
+  --accent:#8ea8ff; --accent-soft:#232c45; --keep:#6fd39c; --keep-bg:#17301f;
+  --warn:#f0bd5c; --warn-bg:#33280f; --drop:#ff8a80; --drop-bg:#3a1a18; --code-bg:#232937;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.6 "IBM Plex Sans",system-ui,-apple-system,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:40px 22px 72px;display:flex;flex-direction:column;gap:32px}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:19px;font-weight:600;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;font-weight:600}
+p{margin:0;max-width:70ch}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+header{display:flex;flex-direction:column;gap:8px}
+.lede{color:var(--muted);font-size:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.card ul,ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.keep{color:var(--keep);background:var(--keep-bg)} .warn{color:var(--warn);background:var(--warn-bg)} .drop{color:var(--drop);background:var(--drop-bg)}
+pre{background:var(--code-bg);padding:13px 15px;border-radius:8px;overflow-x:auto;margin:0;font-size:13px;line-height:1.55}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px}
+a{color:var(--accent)}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">LingoLearn integration · TS · identity and access</span>
+<h1>Identity &amp; Access after the merge</h1>
+<p class="lede">Your slice became the system-wide login. Your API, roles, screens and parent-link flow all stayed; the storage underneath them changed, and three security holes are closed.</p>
+</header>
+<section>
+  <h2>What was kept</h2>
+  <div class="card"><span class="chip keep">Yours, unchanged in shape</span>
+  <ul>
+    <li>The role set <code>learner · guardian · author · moderator · administrator</code>. TK and TC renamed their <code>'admin'</code> to match yours.</li>
+    <li>Username sign-in for learners, email for everyone else; <code>/me</code>, <code>/roles</code>, the link-code flow, <code>SignInScreen</code>, <code>ParentLinkScreen</code>, <code>authStore</code> with <code>restoreServerSession</code>.</li>
+    <li>scrypt password hashing with <code>timingSafeEqual</code>, and your openapi documentation.</li>
+    <li>Your test cases, re-pointed at the database.</li>
+  </ul></div>
+</section>
+<section>
+  <h2>What changed, and why</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Change</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><b>Accounts, sessions and links moved from JSON files to Postgres.</b> <code>AuthAccountStore</code> and <code>ParentLinkStore</code> are gone; <code>AccountMethods</code>, <code>SessionMethods</code> and <code>ParentLinkMethods</code> now hold SQL.</td><td>Five other slices need a real <code>users</code> row to point a foreign key at: content authors, learner settings, moderator decisions. <code>data/auth-store.json</code> gave them nothing to reference, and two concurrent signups could collide on <code>nextUserId</code>.</td></tr>
+      <tr><td><b>The gate no longer accepts <code>x-user-id</code> / <code>x-user-role</code> headers</b>, in the gate or in <code>getRouteUser</code>.</td><td>Anyone could send <code>x-user-role: administrator</code> and read every linked child. With ownership checks now on content, a spoofable identity would have made them meaningless.</td></tr>
+      <tr><td><b>An invalid token answers 401.</b></td><td>The <code>catch</code> had <code>// next(error)</code> commented out and then returned, so the request hung with no response at all. With 30-second sessions, any tab left open hit this.</td></tr>
+      <tr><td><b>Signup accepts learner and guardian only</b>; staff come from <code>npm run seed:staff</code>.</td><td>Public signup accepted any role, so anyone could register as an administrator.</td></tr>
+      <tr><td><b><code>AUTH_SECRET</code> is required</b>, with no <code>'dev-secret-only'</code> fallback, and signatures compare in constant time.</td><td>A known fallback secret lets anyone mint a token for any account.</td></tr>
+      <tr><td><b>Sessions last 7 days, link codes 10 minutes.</b></td><td>30 seconds and 1 minute were demo settings; they make every other slice look broken.</td></tr>
+      <tr><td><b>Signed-in routes moved after the gate</b> (<code>apply_auth_session_api_routes</code>) with <code>RoleGuard</code>; signup, login and <code>/roles</code> stay before it.</td><td>The scaffold's rule: everything after the gate needs a session. Your parent-link routes were checking roles by hand instead.</td></tr>
+      <tr><td><b>Migrations renumbered</b> to <code>100_users_sessions.sql</code> and <code>101_parent_linking.sql</code>; <code>first_name</code> / <code>last_name</code> replace <code>name</code>, and <code>age</code> is gone.</td><td>089/091 sat either side of the shared 0xx range. Your code already used first and last names while the table had one <code>name</code>. Age duplicated the date of birth in TK's <code>learner_settings</code>, so that is now the one place it lives.</td></tr>
+      <tr><td><b>The child progress report returns empty counts.</b></td><td>It returned invented lessons and scores. The shape is unchanged, so when the learner slice lands progress tables only the query changes.</td></tr>
+      <tr><td><b>The router guard reads <code>meta.requiresAuth</code> and <code>meta.roles</code>.</b></td><td>It was a hardcoded set of two route names, so no other slice could protect its own screens.</td></tr>
+      <tr><td><b><code>npm run dev</code> is back to <code>tsx watch</code></b>; <code>tmp/auth-gui-render/*.png</code>, <code>9_to_11_September</code> and <code>TESTING_COMPLIANCE.md</code> were removed from the repo root.</td><td>Hot reload was lost when dev switched to build-then-run.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section>
+  <h2>How much of this is new code</h2>
+  <div class="card"><span class="chip warn">Worth knowing</span>
+  <p>The API, the rules and the screens are yours. What was rewritten is the storage layer underneath them: <code>AccountMethods</code>, <code>SessionMethods</code> and <code>ParentLinkMethods</code> are now SQL against Postgres rather than reads and writes of a JSON file. Feature for feature it does the same things, but it is a substantial amount of code you did not write, and <code>backend/scripts/seedStaff.ts</code> is new outright.</p>
+  <p>Please read both before building on them. Nothing here was a redesign of your slice; if a decision looks wrong, it is yours to change.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Where your code lives now</h2>
+  <pre>backend/migrations/100_users_sessions.sql, 101_parent_linking.sql
+backend/src/routes/api/routes.api/authRoutes/
+    authRoutes.ts              signup, login (before the gate) + me, logout, links (after it)
+    authApplyAllRoute.ts       the gate: verifies the bearer token, 401s otherwise
+    methods/accountMethods.ts  signup, login, createAccount (also used by the seed)
+    methods/sessionMethods.ts  token signing, verification, revocation
+    methods/parentLinkMethods.ts
+backend/scripts/seedStaff.ts
+backend/test/integration/authRoutes.test.ts   20 tests, against the database</pre>
+  <p class="note">Your unit tests for the JSON store were replaced rather than deleted: every case they covered is now an integration test against Postgres.</p>
+</section>
+<section>
+  <h2>What is yours to do next</h2>
+  <ul class="plain">
+    <li>Sprint 2 tickets LNG-19 and LNG-20: the moderator's user list, role changes and deactivation. The tables are ready for them.</li>
+    <li>Decide whether a guardian may link more than one learner, and whether a learner may have more than one guardian. The table allows both today.</li>
+    <li>The progress report query, once the learner slice has progress tables.</li>
+  </ul>
+</section>
+<section>
+  <h2>Running it</h2>
+  <pre>git fetch origin
+git switch integration
+
+# backend/.env needs one new line
+AUTH_SECRET=any-long-random-string
+
+cd backend &amp;&amp; npm install
+docker compose up -d
+npm run migrate        # run against a FRESH database: the migrations were renumbered
+npm run seed:staff     # creates author@lingolearn.test, moderator@…, admin@… (password: lingolearn-dev)
+npm run dev
+
+cd ../frontend &amp;&amp; npm install &amp;&amp; npm run dev</pre>
+  <p>Learners and guardians sign themselves up. Author, moderator and administrator accounts only come from <code>npm run seed:staff</code>, so nobody can sign up as staff.</p>
+</section>
+</main>

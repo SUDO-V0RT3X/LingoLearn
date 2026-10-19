@@ -1,0 +1,935 @@
+openapi: 3.0.3
+info:
+  title: LingoLearn API
+  version: 0.1.0
+  description: >
+    REST API for LingoLearn. Served at /api/docs.
+    Each slice documents its own resources in this file.
+servers:
+  - url: /
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Signed session token returned by /api/auth/signup or /api/auth/login.
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        issues:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    ContentBlock:
+      type: object
+      required: [itemType, value]
+      properties:
+        itemType: { type: string, enum: [Text, Image, Audio, Pending Selection] }
+        value:
+          type: object
+          description: "Text is {title, text}. Image is {title, fileUrl, altText}. Audio is {title, fileUrl, transcript}. Pending is {}. fileUrl is the relative link an upload returned; an Image fileUrl must start with /uploads/images/ to be submitted."
+    Level:
+      type: object
+      properties:
+        id: { type: integer }
+        level_number: { type: integer, minimum: 1, maximum: 6 }
+        name: { type: string }
+        description: { type: string }
+    Tag:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        tag_type: { type: string, enum: [test, theme] }
+        description: { type: string }
+    TagInput:
+      type: object
+      required: [name, tag_type]
+      properties:
+        name: { type: string, maxLength: 50 }
+        tag_type: { type: string, enum: [test, theme] }
+        description: { type: string }
+    ContentTag:
+      type: object
+      properties:
+        id: { type: integer }
+        content_id: { type: integer }
+        tag_id: { type: integer }
+        tag_name: { type: string }
+        tag_type: { type: string, enum: [test, theme] }
+    Upload:
+      type: object
+      properties:
+        filename: { type: string, description: The generated name on disk }
+        fileUrl: { type: string, example: /uploads/audio/6b1f....mp3, description: Relative; the reader resolves it against the API origin }
+        title: { type: string }
+    Content:
+      type: object
+      description: The content as a whole. contentId is the only id; the pages and blocks are plain JSON inside content.
+      properties:
+        contentId: { type: integer }
+        authorId: { type: integer }
+        authorName: { type: string, description: The author's display name, for a byline }
+        title: { type: string }
+        language: { type: string, nullable: true, enum: [english, zulu] }
+        childFriendly: { type: boolean, description: Whether an under-13 learner may be shown it }
+        status: { type: string, enum: [draft, pending, approved, rejected] }
+        updatedAt: { type: string, format: date-time }
+        submittedAt: { type: string, format: date-time, nullable: true }
+        level: { type: integer, nullable: true, minimum: 1, maximum: 6 }
+        chosenTags: { type: array, items: { type: string }, description: Theme tag names from the tags table, in tag id order }
+        kind: { type: string, enum: [story, quiz], description: Derived from the blocks, never sent }
+        content:
+          type: array
+          description: A list of pages, each a list of blocks
+          items: { type: array, items: { $ref: '#/components/schemas/ContentBlock' } }
+    ContentSummary:
+      type: object
+      description: One row of a list. The same as Content without the pages, plus the author's name.
+      properties:
+        contentId: { type: integer }
+        authorId: { type: integer }
+        authorName: { type: string }
+        title: { type: string }
+        language: { type: string, nullable: true, enum: [english, zulu] }
+        childFriendly: { type: boolean }
+        status: { type: string, enum: [draft, pending, approved, rejected] }
+        level: { type: integer, nullable: true, minimum: 1, maximum: 6 }
+        chosenTags: { type: array, items: { type: string } }
+        kind: { type: string, enum: [story, quiz] }
+        updatedAt: { type: string, format: date-time }
+        submittedAt: { type: string, format: date-time, nullable: true }
+        locked: { type: boolean, description: "getApprovedContent only: true when the content is above the learner's level" }
+    ContentBody:
+      type: object
+      required: [content]
+      description: What an author saves while drafting. Only content is required; a field left out keeps what was saved.
+      properties:
+        content:
+          type: array
+          description: A list of pages, each a list of blocks
+          items: { type: array, items: { $ref: '#/components/schemas/ContentBlock' } }
+        title: { type: string }
+        language: { type: string, nullable: true, enum: [english, zulu] }
+        childFriendly: { type: boolean }
+        level: { type: integer, nullable: true, minimum: 1, maximum: 6, description: null clears it }
+        chosenTags:
+          type: array
+          maxItems: 10
+          description: Distinct theme tags in the author's order; the first is the theme. An empty list clears them.
+          items: { type: string }
+        name: { type: string, maxLength: 80 }
+        note: { type: string }
+    PublicUser:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string, nullable: true }
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        name: { type: string, nullable: true }
+        email: { type: string, format: email, nullable: true }
+        role: { type: string, enum: [learner, guardian, moderator, author, administrator] }
+        age: { type: integer, minimum: 1, maximum: 120, nullable: true }
+        requiresGuardianLink: { type: boolean }
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user: { $ref: '#/components/schemas/PublicUser' }
+    ParentLinkCode:
+      type: object
+      properties:
+        code: { type: string, minLength: 6, maxLength: 6, example: ABC123 }
+        expiresAt: { type: string, format: date-time }
+    LinkedChild:
+      allOf:
+        - $ref: '#/components/schemas/PublicUser'
+        - type: object
+          properties:
+            linkedAt: { type: string, format: date-time }
+    PlacementOption:
+      type: object
+      required: [id, text]
+      properties:
+        id: { type: string }
+        text: { type: string }
+    PlacementQuestion:
+      type: object
+      required: [id, section, instructions, type, prompt]
+      properties:
+        id: { type: string }
+        section: { type: string }
+        instructions: { type: string }
+        type: { type: string, enum: [multiple-choice, fill-blank] }
+        prompt: { type: string }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/PlacementOption' }
+    PlacementResult:
+      type: object
+      required: [levelNumber, level, label]
+      properties:
+        levelNumber: { type: integer, minimum: 1, maximum: 6, example: 4 }
+        level: { type: string, enum: [A1, A1+, A2, B1, B2, C1], example: B1 }
+        label: { type: string, example: Level 4 }
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              skill: { type: string }
+              level: { type: string }
+    StartPlacementResponse:
+      type: object
+      required: [attemptId, question, totalQuestions, questionNumber, resumed]
+      properties:
+        attemptId: { type: string, format: uuid }
+        question: { $ref: '#/components/schemas/PlacementQuestion' }
+        totalQuestions: { type: integer }
+        questionNumber: { type: integer, minimum: 1, description: 1-based position of the question in the ladder }
+        resumed: { type: boolean, description: True when an unfinished attempt was continued }
+    SubmitAnswerInput:
+      type: object
+      required: [questionId, answer]
+      properties:
+        questionId: { type: string }
+        answer: { type: string }
+    SubmitResponse:
+      type: object
+      required: [correct, nextQuestion, isComplete]
+      properties:
+        correct: { type: boolean }
+        nextQuestion:
+          nullable: true
+          allOf: [{ $ref: '#/components/schemas/PlacementQuestion' }]
+        isComplete: { type: boolean }
+        result: { $ref: '#/components/schemas/PlacementResult' }
+security:
+  - bearerAuth: []
+paths:
+  # ---- CONTENT: the content builder (tables in migrations/300_content.sql) ----
+  /api/content/getMyContent:
+    get:
+      summary: Everything the signed-in author has written, newest change first
+      responses:
+        '200': { description: Rows, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ContentSummary' } } } } }
+        '403': { description: Authors only }
+  /api/content/getPendingContent:
+    get:
+      summary: The review queue — everything waiting for a decision, longest wait first
+      responses:
+        '200': { description: Rows, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ContentSummary' } } } } }
+        '403': { description: Moderators only }
+  /api/content/getApprovedContent:
+    get:
+      summary: Approved content a learner may read
+      parameters:
+        - { name: level, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 6 } }
+        - { name: language, in: query, required: false, schema: { type: string, enum: [english, zulu] } }
+        - { name: childFriendlyOnly, in: query, required: false, schema: { type: boolean } }
+      responses:
+        '200': { description: Rows, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ContentSummary' } } } } }
+        '400': { description: A filter value is not valid }
+  /api/content/getContent/{contentId}:
+    get:
+      summary: Load a draft by its content id
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: The content, content: { application/json: { schema: { $ref: '#/components/schemas/Content' } } } }
+        '400': { description: The id is not an integer }
+        '403': { description: "Someone else's draft; for a learner, content not child-friendly or above their level" }
+        '404': { description: No such content }
+  /api/content/createContent:
+    post:
+      summary: Save a new draft. The server assigns its content id.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ContentBody' } } } }
+      responses:
+        '201': { description: The new draft, content: { application/json: { schema: { $ref: '#/components/schemas/Content' } } } }
+        '400': { description: The content or its blocks are malformed, or a level or tag is not one of the fixed set }
+  /api/content/editContent/{contentId}:
+    put:
+      summary: Save changes to an existing draft
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ContentBody' } } } }
+      responses:
+        '200': { description: The updated draft }
+        '400': { description: The id is not an integer, the content or its blocks are malformed, or a level or tag is not one of the fixed set }
+        '404': { description: No such content }
+        '409': { description: Only a draft can be changed }
+  /api/content/deleteContent/{contentId}:
+    delete:
+      summary: Delete a draft
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Deleted }
+        '400': { description: The id is not an integer }
+        '404': { description: No such content }
+        '409': { description: Only a draft can be deleted }
+  /api/content/submitContent/{contentId}:
+    post:
+      summary: Submit a draft for review. Sets status to pending; kind is derived server side.
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content, title, language, childFriendly, level, chosenTags]
+              properties:
+                content:
+                  type: array
+                  items: { type: array, items: { $ref: '#/components/schemas/ContentBlock' } }
+                title: { type: string }
+                language: { type: string, enum: [english, zulu] }
+                childFriendly: { type: boolean }
+                level: { type: integer, minimum: 1, maximum: 6 }
+                chosenTags: { type: array, items: { type: string }, description: Distinct tags from the fixed set }
+      responses:
+        '200': { description: Now pending, content: { application/json: { schema: { $ref: '#/components/schemas/Content' } } } }
+        '400': { description: "A submission check failed; error names which" }
+        '404': { description: No such content }
+        '409': { description: Only a draft can be submitted }
+  # ---- LEARNER EXPERIENCE: tests (501_test_attempts.sql) and reading progress (502_content_progress.sql) ----
+  /api/testAttempts/submit:
+    post:
+      summary: Mark a learner's answers to a content's test and record the attempt. Never returns the right answers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentId, answers]
+              properties:
+                contentId: { type: integer }
+                answers:
+                  type: array
+                  description: One per question block in reading order; an option position, the typed word, or null
+                  items: { oneOf: [{ type: integer }, { type: string }], nullable: true }
+      responses:
+        '201':
+          description: The marked attempt
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attemptId: { type: integer }
+                  contentId: { type: integer }
+                  total: { type: integer }
+                  score: { type: integer }
+                  percent: { type: integer }
+                  passed: { type: boolean }
+                  passMark: { type: integer }
+                  countsTowardLevelUp: { type: boolean, description: "The test is at the learner's current level (below the top), so a pass counts toward the level-up challenge; false for practice below their level" }
+                  questions: { type: array, items: { type: object, properties: { correct: { type: boolean } } } }
+        '400': { description: "No contentId, no questions in the content, or the wrong number or kind of answers" }
+        '403': { description: "Learners only; setup unfinished, no guardian link, not child-friendly, or above the learner's level" }
+        '404': { description: No approved content with this id }
+  /api/testAttempts/myLearning:
+    get:
+      summary: "The learner's My Learning dashboard: level, challenge progress, statistics, history and continue reading"
+      responses:
+        '200':
+          description: The dashboard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentLevel: { type: integer }
+                  testsPassedAtLevel: { type: integer, description: Distinct tests passed at the current level }
+                  testsRequired: { type: integer }
+                  readyForChallenge: { type: boolean }
+                  testsCompleted: { type: integer, description: Distinct tests attempted }
+                  testsPassed: { type: integer, description: Distinct tests passed at least once }
+                  averagePercent: { type: integer, description: "Rounded mean of each distinct test's best percent, 0 with no attempts" }
+                  bestResults:
+                    type: array
+                    description: The latest 20 tests taken, one row per test with its best result, most recently taken first
+                    items:
+                      type: object
+                      properties:
+                        contentId: { type: integer }
+                        title: { type: string }
+                        level: { type: integer }
+                        bestPercent: { type: integer }
+                        passed: { type: boolean }
+                        attempts: { type: integer }
+                        lastSubmittedAt: { type: string, format: date-time }
+                  history:
+                    type: array
+                    description: The latest 20 attempts, newest first
+                    items:
+                      type: object
+                      properties:
+                        attemptId: { type: integer }
+                        contentId: { type: integer }
+                        title: { type: string }
+                        level: { type: integer }
+                        score: { type: integer }
+                        total: { type: integer }
+                        percent: { type: integer }
+                        passed: { type: boolean }
+                        submittedAt: { type: string, format: date-time }
+                  continueReading:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        contentId: { type: integer }
+                        title: { type: string }
+                        page: { type: integer, description: 0-based }
+                        totalPages: { type: integer }
+                        updatedAt: { type: string, format: date-time }
+        '403': { description: Learners only }
+  /api/reading/saveProgress/{contentId}:
+    put:
+      summary: Remember the page a learner is on
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [page]
+              properties:
+                page: { type: integer, minimum: 0, description: 0-based }
+                totalPages: { type: integer, description: Optional; must match the content's page count }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { type: object, properties: { page: { type: integer }, totalPages: { type: integer } } } } } }
+        '400': { description: The id or page is not valid for this content }
+        '403': { description: Learners only, and only content they may open }
+        '404': { description: No approved content with this id }
+  /api/reading/getProgress/{contentId}:
+    get:
+      summary: The page to resume at, 0 when not opened before
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: The saved page, content: { application/json: { schema: { type: object, properties: { page: { type: integer }, totalPages: { type: integer } } } } } }
+        '400': { description: The id is not an integer }
+        '403': { description: Learners only, and only content they may open }
+        '404': { description: No approved content with this id }
+  # ---- LEARNER EXPERIENCE: saved read-aloud recordings (506_learner_recordings.sql) ----
+  /api/recordings/{contentId}:
+    parameters: [{ name: contentId, in: path, required: true, schema: { type: integer, minimum: 1 } }]
+    get:
+      summary: "The caller's own saved read-aloud recording for this content, as audio"
+      description: Learners only. Streams the file from uploads/recordings/, which is never served at /uploads.
+      responses:
+        '200': { description: The recording, content: { audio/webm: {}, audio/ogg: {}, audio/mp4: {} } }
+        '400': { description: The id is not a positive integer }
+        '403': { description: Learners only, and only content they may open }
+        '404': { description: No approved content with this id, or no recording saved for it }
+    put:
+      summary: Save the caller's recording for this content, replacing any earlier one
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary, description: "What the browser recorded: audio/webm, audio/ogg or audio/mp4 (m4a), up to 5 MB" }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contentId: { type: integer }
+                  mimeType: { type: string, enum: [audio/webm, audio/ogg, audio/mp4] }
+                  sizeBytes: { type: integer }
+                  updatedAt: { type: string, format: date-time }
+        '400': { description: No file, or a type that is not a recording, or bytes that do not match the type }
+        '403': { description: Learners only, and only content they may open }
+        '404': { description: No approved content with this id }
+        '413': { description: Over 5 MB }
+    delete:
+      summary: "Delete the caller's recording for this content"
+      description: Allowed even for content the learner can no longer open, so a learner can always remove their own voice.
+      responses:
+        '204': { description: Deleted }
+        '400': { description: The id is not a positive integer }
+        '403': { description: Learners only }
+        '404': { description: No recording saved for this content }
+  # ---- TAXONOMY & MEDIA: migrations/400_taxonomy.sql, uploads on disk ----
+  /api/taxonomy/getLevels:
+    get:
+      summary: The six reading levels, in order
+      responses:
+        '200': { description: Levels, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Level' } } } } }
+  /api/taxonomy/getTags:
+    get:
+      summary: The tag vocabulary, optionally narrowed to one type
+      parameters: [{ name: type, in: query, required: false, schema: { type: string, enum: [test, theme] } }]
+      responses:
+        '200': { description: Tags, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Tag' } } } } }
+        '400': { description: Unknown type filter }
+  /api/taxonomy/createTag:
+    post:
+      summary: Add a tag to the vocabulary (administrator only)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TagInput' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Tag' } } } }
+        '400': { description: Invalid tag }
+        '403': { description: Only an administrator may add tags }
+        '409': { description: That name is already taken }
+  /api/taxonomy/getContentTags/{contentId}:
+    get:
+      summary: The tags linked to one piece of content
+      parameters: [{ name: contentId, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: Linked tags, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ContentTag' } } } } }
+        '400': { description: The id is not a positive integer }
+  /api/media/uploadAudio:
+    post:
+      summary: Upload one audio clip (author or administrator, 5 MB limit). The uploader is recorded.
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary }, title: { type: string }, transcript: { type: string } } } } } }
+      responses:
+        '201': { description: Stored, content: { application/json: { schema: { $ref: '#/components/schemas/Upload' } } } }
+        '400': { description: Missing file, or not an allowed audio type }
+        '403': { description: Authors only }
+        '413': { description: Larger than 5 MB }
+  /api/media/listAudio:
+    get:
+      summary: The caller's own uploaded clips, newest first (an administrator sees every clip)
+      responses:
+        '200': { description: "Files: filename, fileUrl, sizeBytes, uploadedAt, title, transcript" }
+        '403': { description: Authors and administrators only }
+  /api/media/uploadImage:
+    post:
+      summary: Upload one image for an image block (author or administrator; PNG, JPEG, WebP or GIF; 5 MB limit)
+      description: The declared type, the extension and the file's first bytes must all name the same format. Image blocks may only point at /uploads/images/.
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } } } } }
+      responses:
+        '201': { description: Stored, content: { application/json: { schema: { type: object, properties: { fileUrl: { type: string, example: /uploads/images/6b1f....png } } } } } }
+        '400': { description: Missing file, or not an allowed image }
+        '403': { description: Authors and administrators only }
+        '413': { description: Larger than 5 MB }
+  # ---- MODERATION: the review queue and decisions (migrations/600_moderation.sql) ----
+  /api/reviewQueue/getReviewQueue:
+    get:
+      summary: Content waiting for a decision, longest wait first (moderators)
+      responses:
+        '200': { description: Queue rows }
+        '403': { description: Moderators only }
+  /api/reviewDetail/getReviewDetail/{id}:
+    get:
+      summary: One submitted piece of content, its pages and its decision history
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      responses:
+        '200': { description: The content under review, answers included. A draft its author reopened after a rejection comes back read-only (status draft). }
+        '400': { description: The id is not an integer }
+        '403': { description: Moderators only }
+        '404': { description: No such content }
+        '409': { description: Never submitted, so not up for review }
+  /api/reviewDetail/getMyFeedback:
+    get:
+      summary: Every decision made on the signed-in author's own content, newest first
+      responses:
+        '200': { description: Decisions }
+        '403': { description: Authors only }
+  /api/reviewDetail/decideContent/{id}:
+    post:
+      summary: Approve or reject. Rejecting needs a reason, which the author reads.
+      parameters: [{ name: id, in: path, required: true, schema: { type: integer } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approved, rejected] }
+                reason: { type: string, description: Required when rejecting }
+      responses:
+        '200': { description: The content, now decided }
+        '400': { description: Unknown decision, or a rejection with no reason }
+        '403': { description: Moderators only }
+        '404': { description: No such content }
+        '409': { description: Only pending content can be decided }
+
+  # ---- PROGRESSION: the level-up challenge (migrations/601 and 602, level_challenges) ----
+  /api/progress/getMyLevel:
+    get:
+      summary: The signed-in learner's current level (1 until placement or a challenge sets it)
+      responses:
+        '200': { description: '{ level }' }
+        '403': { description: Learners only }
+  /api/progress/checkEligibility:
+    get:
+      summary: Whether the learner may take the level-up challenge now, and why not
+      description: >
+        Worked out on the server from the learner's level, the distinct tests passed at
+        it (test_attempts) and any cooldown. reason is max_level, requirement_not_met,
+        cooldown_active, or null when eligible.
+      responses:
+        '200':
+          description: Eligibility
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentLevel: { type: integer }
+                  targetLevel: { type: integer, nullable: true }
+                  testsPassed: { type: integer }
+                  testsRequired: { type: integer }
+                  passMark: { type: integer, nullable: true, description: Score (%) needed to pass the next level }
+                  eligible: { type: boolean }
+                  reason: { type: string, nullable: true, enum: [max_level, requirement_not_met, cooldown_active] }
+                  cooldownUntil: { type: string, format: date-time, nullable: true }
+                  secondsRemaining: { type: integer }
+                  inProgress: { type: boolean }
+        '403': { description: Learners only }
+  /api/progress/startChallenge:
+    post:
+      summary: Starts the challenge for the next level, or resumes the one already started
+      description: >
+        Re-checks eligibility, then draws up to 15 random question blocks from approved
+        content at the next level (child-friendly only for a child; the learner's
+        target language first). The server keeps the questions with their answers;
+        the reply carries them without.
+      responses:
+        '200':
+          description: The questions, answers withheld
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challengeId: { type: integer }
+                  targetLevel: { type: integer }
+                  questions: { type: array, items: { $ref: '#/components/schemas/ContentBlock' } }
+                  resumed: { type: boolean }
+                  answers:
+                    type: array
+                    description: "The learner's own saved answers to the questions already moved past (empty for a new attempt); never the right answers"
+                    items: { nullable: true, oneOf: [{ type: integer }, { type: string }] }
+        '403': { description: Not eligible (top level, too few tests passed, or cooling down), setup unfinished, or not a learner }
+        '409': { description: Fewer than 5 approved questions exist at the next level }
+  /api/progress/saveChallengeAnswers:
+    post:
+      summary: Keeps the answers to the questions the learner has moved past, so a resumed challenge continues from the next one
+      description: >
+        Nothing is marked. Forward only: answers already saved stay as they were, so
+        only answers past the saved ones are added. submitChallenge marks the saved
+        answers as they were saved.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeId, answers]
+              properties:
+                challengeId: { type: integer }
+                answers:
+                  type: array
+                  description: The answers so far, in order; at most one per question
+                  items: { nullable: true, oneOf: [{ type: integer }, { type: string }] }
+      responses:
+        '200': { description: '{ challengeId, answered }: how many questions now have a saved answer' }
+        '400': { description: Missing challengeId, or answers that are not a list of at most one answer per question }
+        '403': { description: The challenge belongs to another learner }
+        '404': { description: No such challenge }
+        '409': { description: Already submitted }
+  /api/progress/submitChallenge:
+    post:
+      summary: Submits the answers to a started challenge; the server marks them
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [challengeId, answers]
+              properties:
+                challengeId: { type: integer }
+                answers:
+                  type: array
+                  description: One per question, in order. Option position for choice questions, text for a gap, null when unanswered.
+                  items: { nullable: true, oneOf: [{ type: integer }, { type: string }] }
+      responses:
+        '200':
+          description: >
+            The result. passed is percent >= the target level's pass mark (levels.pass_mark).
+            A pass sets the learner to the target level; a fail starts a 24 hour cooldown.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passed: { type: boolean }
+                  score: { type: integer }
+                  total: { type: integer }
+                  percent: { type: integer }
+                  passMark: { type: integer }
+                  newLevel: { type: integer }
+                  cooldownUntil: { type: string, format: date-time, nullable: true }
+        '400': { description: Missing challengeId, or answers that are not a list of the right length }
+        '403': { description: The challenge belongs to another learner }
+        '404': { description: No such challenge }
+        '409': { description: Already submitted }
+
+  # ---- AUTH (IAM slice): document signup / login / logout here ----
+  /api/auth/signup:
+    post:
+      summary: Create an account and issue a signed session token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [firstName, lastName, username, password, role]
+                  properties:
+                    firstName: { type: string }
+                    lastName: { type: string }
+                    username: { type: string, minLength: 3, maxLength: 30 }
+                    password: { type: string, minLength: 8 }
+                    role: { type: string, enum: [learner] }
+                - type: object
+                  required: [firstName, lastName, email, password, role]
+                  properties:
+                    firstName: { type: string }
+                    lastName: { type: string }
+                    email: { type: string, format: email }
+                    password: { type: string, minLength: 8 }
+                    role: { type: string, enum: [guardian] }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '400': { description: Invalid account input }
+        '409': { description: Email or username already in use }
+        '429': { description: Too many sign-ups from this IP (10 per 15 minutes) }
+  /api/auth/login:
+    post:
+      summary: Sign in and issue a signed session token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, password]
+              properties:
+                identifier: { type: string, description: Learner username or staff/guardian email }
+                password: { type: string }
+      responses:
+        '200': { description: Signed in, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '401': { description: Invalid credentials }
+        '429': { description: Too many failed sign-in attempts from this IP (10 per minute; successful sign-ins do not count) }
+  /api/auth/logout:
+    post:
+      summary: Revoke the current session server-side
+      security:
+        - bearerAuth: []
+      responses:
+        '204': { description: Session revoked }
+        '401': { description: Session invalid }
+  /api/auth/me:
+    get:
+      summary: Return the current session user
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Current user, content: { application/json: { schema: { type: object, properties: { user: { $ref: '#/components/schemas/PublicUser' } } } } } }
+        '401': { description: Session invalid }
+  /api/auth/roles:
+    get:
+      summary: List supported account roles
+      security: []
+      responses:
+        '200': { description: Roles, content: { application/json: { schema: { type: object, properties: { roles: { type: array, items: { type: string } } } } } } }
+  /api/auth/link-codes:
+    post:
+      summary: Create a 6-character parent link code for the current learner
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ParentLinkCode' } } } }
+        '401': { description: Temporary user headers missing }
+        '403': { description: Only learner accounts can generate child link codes }
+        '409': { description: 'only a learner under 13 can be linked to a guardian (also when setup has no date of birth yet)' }
+  /api/auth/parent-links/redeem:
+    post:
+      summary: Redeem a learner link code as a guardian
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, minLength: 6, maxLength: 6 }
+      responses:
+        '201': { description: Linked, content: { application/json: { schema: { type: object, properties: { child: { $ref: '#/components/schemas/PublicUser' }, linkedAt: { type: string, format: date-time } } } } } }
+        '404': { description: Invalid code }
+        '409': { description: 'Code already used; or only a learner under 13 can be linked to a guardian (the learner has turned 13 since the code was made)' }
+        '410': { description: Code expired }
+        '429': { description: Too many refused codes from this IP (10 per minute) }
+  /api/auth/children:
+    get:
+      summary: List children linked to the current guardian
+      responses:
+        '200': { description: Children, content: { application/json: { schema: { type: object, properties: { children: { type: array, items: { $ref: '#/components/schemas/LinkedChild' } } } } } } }
+        '403': { description: Only guardian or administrator accounts can list children }
+  /api/auth/my-guardians:
+    get:
+      summary: List the guardians actively linked to the current learner (names only)
+      responses:
+        '200': { description: Guardians, oldest link first, content: { application/json: { schema: { type: object, properties: { guardians: { type: array, items: { type: object, properties: { firstName: { type: string }, lastName: { type: string }, linkedAt: { type: string, format: date-time } } } } } } } } }
+        '403': { description: Learners only }
+  /api/guardians/me/children/{childId}/report:
+    get:
+      summary: Read-only progress report for one of the guardian's actively linked children
+      description: Level, tests taken and average (as on the learner's My learning), level-up progress and challenge state, the latest tests, challenges and reading, flags, and whether the child sees child-friendly content. Covers all of the child's learning; the optional language query is only validated.
+      parameters:
+        - { name: childId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { name: language, in: query, required: false, schema: { type: string, enum: [en, zu] } }
+      responses:
+        '200': { description: The report }
+        '400': { description: childId must be a positive integer; or language must be en or zu }
+        '403': { description: Guardians only; or the child is not actively linked to this guardian (Access denied) }
+        '404': { description: Child not found }
+
+  # ---- ONBOARDING & PLACEMENT: migrations/200_learner_settings.sql & 202_placement.sql ----
+  /api/placement/startPlacement:
+    post:
+      summary: Start a placement test attempt (or continue the learner's unfinished one) and return its current question
+      responses:
+        '200':
+          description: The learner's unfinished attempt, continued at its current question
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StartPlacementResponse' }
+        '201':
+          description: Test started
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StartPlacementResponse' }
+        '403': { description: Learners only; under-13 learners require active parent link }
+  /api/placement/skipPlacement:
+    post:
+      summary: Skip placement and assign Level 1 (learner only; normal access policy applies)
+      responses:
+        '200':
+          description: Learner assigned Level 1
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [userId, levelNumber]
+                properties:
+                  userId: { type: integer }
+                  levelNumber: { type: integer, enum: [1] }
+        '403': { description: Learners only; under-13 learners require an active parent link }
+  /api/placement/getLearnerLevel:
+    get:
+      summary: Read the authenticated learner's level through the placement owner
+      responses:
+        '200':
+          description: Saved level, or Level 1 when no placement has been recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [userId, levelNumber]
+                properties:
+                  userId: { type: integer }
+                  levelNumber: { type: integer, minimum: 1, maximum: 6 }
+        '403': { description: Learners only }
+  /api/placement/getActiveAttempt:
+    get:
+      summary: The learner's unfinished placement attempt at its current question, or null (never creates one)
+      responses:
+        '200':
+          description: The unfinished attempt, or null when there is none or the learner is already placed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [attempt]
+                properties:
+                  attempt:
+                    nullable: true
+                    allOf: [{ $ref: '#/components/schemas/StartPlacementResponse' }]
+        '403': { description: Learners only; setup must be saved and under-13 learners need an active parent link }
+  /api/placement/submitAnswer/{attemptId}:
+    post:
+      summary: Submit an answer to a question in the placement test
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitAnswerInput' }
+      responses:
+        '200':
+          description: Answer graded; returns next question or final placement result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubmitResponse' }
+        '400': { description: Invalid input or attempt already completed }
+        '403': { description: Learners only }
+        '404': { description: Attempt or question not found }
+        '409': { description: Submitted question is not current or attempt changed concurrently }
+  /api/placement/quitPlacement/{attemptId}:
+    post:
+      summary: Quit the active attempt and assign the current question's level
+      parameters:
+        - name: attemptId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Attempt completed with its current level result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubmitResponse' }
+        '400': { description: Attempt is already completed }
+        '403': { description: Learners only; under-13 learners require active parent link }
+        '404': { description: Attempt or active question not found }
+        '409': { description: Attempt changed concurrently }
+  /api/placement/incrementLearnerLevel/{userId}:
+    post:
+      summary: Increment one learner level through the placement-owned write API (administrator only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Updated learner level, capped at Level 6
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [userId, levelNumber]
+                properties:
+                  userId: { type: integer }
+                  levelNumber: { type: integer, minimum: 1, maximum: 6 }
+        '400': { description: Invalid learner ID }
+        '403': { description: Administrators only }

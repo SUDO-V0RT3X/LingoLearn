@@ -1,0 +1,99 @@
+/* The look the three question blocks share, wherever they appear: the
+   reader, the test runner and the author's preview. Built on the design
+   system tokens, so it follows the child theme too. */
+.question-block {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+.question-block__prompt {
+  padding: 0;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.question-block__title {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: var(--space-1);
+}
+.question-block__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.question-block__option:hover {
+  background: var(--surface-2);
+}
+.question-block__option:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.question-block__option input {
+  accent-color: var(--primary);
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+.question-block__sentence {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-md);
+  line-height: 2.2;
+}
+.question-block__gap {
+  width: 8em;
+  max-width: 100%;
+  margin: 0 var(--space-1);
+  padding: 2px var(--space-2);
+  font: inherit;
+  color: var(--ink);
+  border: none;
+  border-bottom: 2px solid var(--rule-strong);
+  border-radius: 0;
+  background: var(--surface-2);
+}
+.question-block__gap:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+  box-shadow: none;
+}
+.question-block audio {
+  width: 100%;
+  margin: var(--space-2) 0 var(--space-1);
+}
+.question-block__transcript-toggle {
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: none;
+  border: none;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.question-block__transcript {
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--ink-2);
+}

@@ -1,0 +1,73 @@
+# CI disabled 
+workflow:
+  rules:
+    - when: never
+
+test-and-deploy:
+  tags: [lingolearn-deploy]
+  variables:
+    NODE_OPTIONS: --max-old-space-size=1024
+  script:
+    - echo "CI disabled"
+
+# Old CI and CD:
+# ---------------------------------------------------------------------------
+# CI/CD pipeline definition for LingoLearn. See docs/ci.md and docs/deploy.md.
+#
+# The host runner executes:
+# on the droplet's own runner (shell executor, tag lingolearn-deploy):
+#   1. backend: install, type check, migrations on an empty test database,
+#      unit and integration tests
+#   2. frontend: install, type check, tests, production build
+#   3. on a push to main only, and only if 1 and 2 passed: deploy. The release
+#      script builds beside the live site and switches only when it all works.
+#
+# Pausing deploys (e.g. on demo day): set the CI/CD variable AUTO_DEPLOY to
+# "false". Pushes then only test. To deploy, Build > Pipelines > Run pipeline
+# on main with AUTO_DEPLOY set to "true".
+# ---------------------------------------------------------------------------
+# workflow:
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#     # A branch with an open merge request already gets the merge request's pipeline.
+#     - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+#       when: never
+#     - if: $CI_COMMIT_BRANCH
+
+# test-and-deploy:
+#   tags: [lingolearn-deploy]
+#   # One run at a time on the droplet; a newer push waits for the one in progress.
+#   resource_group: droplet
+#   variables:
+#     NODE_OPTIONS: --max-old-space-size=1024
+#     # AUTH_SECRET comes from the project's CI/CD variables
+#     # (Settings > CI/CD > Variables), so no signing secret is committed.
+#   script:
+#     - echo "== backend"
+#     # Sets DATABASE_URL to a fresh, empty test database on the droplet.
+#     - source ~/.lingolearn-ci.env
+#     - psql "$CI_DB_ADMIN_URL" -qc 'DROP DATABASE IF EXISTS lingolearn_ci' -c 'CREATE DATABASE lingolearn_ci'
+#     - cd backend
+#     - npm ci --prefer-offline --no-audit --no-fund
+#     - npx tsc --noEmit
+#     - npm run migrate
+#     - npm test
+#     - npm run test:integration
+#     - cd ..
+#     - echo "== frontend"
+#     - cd frontend
+#     - npm ci --prefer-offline --no-audit --no-fund
+#     - npm run type-check
+#     - npx vitest run
+#     - npm run build-only
+#     - cd ..
+#     - echo "== deploy"
+#     - |
+#       if [ "$CI_COMMIT_BRANCH" = "main" ] && [ "$CI_PIPELINE_SOURCE" != "merge_request_event" ] && [ "${AUTO_DEPLOY:-true}" != "false" ]; then
+#         # The runner owns source/; the release step reads it through the lingolearn group.
+#         rsync -rl --delete --omit-dir-times --chmod=Dug+rwx,Fug+rw,o+rX --exclude .git --exclude node_modules ./ /srv/lingolearn/source/
+#         sudo -u lingolearn -H /srv/lingolearn/bin/release
+#         echo "Live at https://159-65-118-0.sslip.io"
+#       else
+#         echo "Tests passed. Not deploying (branch: ${CI_COMMIT_BRANCH:-merge request}, AUTO_DEPLOY: ${AUTO_DEPLOY:-true})."
+#       fi
